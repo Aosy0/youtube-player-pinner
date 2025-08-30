@@ -1,102 +1,114 @@
 (function () {
-  'use-strict';
+  'use strict';
 
-  const STORAGE_KEY = 'youtubeCombinedStickyEnabled';
-  let isEnabled = false;
+  // プレイヤー固定機能に特化（position: sticky ベース）。
+  const TOP_OFFSET_FALLBACK = 56;
+  let applied = false;
 
-  // --- 状態管理 ---
-  function saveState() {
-    chrome.storage.local.set({ [STORAGE_KEY]: isEnabled });
+  const log = (...args) => console.log('[ytpp]', ...args);
+
+  function mastheadHeight() {
+    const m = document.getElementById('masthead-container') || document.querySelector('ytd-masthead');
+    if (!m) return TOP_OFFSET_FALLBACK;
+    const h = m.getBoundingClientRect().height;
+    return h > 0 ? Math.round(h) : TOP_OFFSET_FALLBACK;
   }
 
-  function applyState() {
-    // ページレイアウトの親要素にデータ属性を付与してCSSを有効化
-    const flexyElement = document.querySelector('ytd-watch-flexy');
-    if (flexyElement) {
-      flexyElement.dataset.combinedStickyEnabled = isEnabled;
-    }
-
-    const menuItem = document.getElementById('combined-sticky-menu-item');
-    if (menuItem) {
-      menuItem.setAttribute('aria-checked', isEnabled);
-    }
-  }
-
-  // --- UI作成 & 挿入 ---
-  function injectMaterialIcons() {
-    if (document.getElementById('material-icons-font')) return;
-    const link = document.createElement('link');
-    link.id = 'material-icons-font';
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
-    document.head.appendChild(link);
-  }
-
-  function injectSettingsMenuItem() {
-    if (document.getElementById('combined-sticky-menu-item')) return;
-    const settingsMenu = document.querySelector('.ytp-panel-menu');
-    if (!settingsMenu) return;
-
-    injectMaterialIcons();
-    const menuItem = document.createElement('div');
-    menuItem.className = 'ytp-menuitem';
-    menuItem.id = 'combined-sticky-menu-item';
-
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'ytp-menuitem-icon';
-    const icon = document.createElement('span');
-    icon.className = 'material-icons';
-    icon.textContent = 'view_quilt'; // 機能を表すアイコンに変更
-    iconContainer.appendChild(icon);
-
-    const label = document.createElement('div');
-    label.className = 'ytp-menuitem-label';
-    label.textContent = 'プレーヤーと関連動画を固定'; // 機能名ラベル
-
-    const content = document.createElement('div');
-    content.className = 'ytp-menuitem-content';
-    const toggle = document.createElement('div');
-    toggle.className = 'ytp-menuitem-toggle-checkbox';
-    content.appendChild(toggle);
-
-    menuItem.appendChild(iconContainer);
-    menuItem.appendChild(label);
-    menuItem.appendChild(content);
-
-    menuItem.setAttribute('role', 'menuitemcheckbox');
-    menuItem.setAttribute('aria-checked', isEnabled.toString());
-
-    menuItem.addEventListener('click', (event) => {
-      event.stopPropagation();
-      isEnabled = !isEnabled;
-      saveState();
-      applyState();
-    });
-
-    settingsMenu.appendChild(menuItem);
-  }
-
-  // --- 初期化処理 ---
-  async function initialize() {
-    const data = await chrome.storage.local.get(STORAGE_KEY);
-    isEnabled = data[STORAGE_KEY] === undefined ? false : data[STORAGE_KEY];
-    applyState();
-
-    const observer = new MutationObserver(() => {
-      if (document.querySelector('.ytp-panel-menu') && !document.getElementById('combined-sticky-menu-item')) {
-        injectSettingsMenuItem();
+  function findVisiblePlayerContainer() {
+    // 現在の構造で視認性のある候補を広めに拾い、最も大きい要素を選ぶ
+    const selectors = [
+      '#player-theater-container',
+      '#player-full-bleed-container',
+      '#player',
+      '#player-container',
+      'ytd-player',
+      'ytd-watch-flexy #player-container',
+      'ytd-watch-flexy #player'
+    ];
+    const candidates = new Set();
+    selectors.forEach(s => document.querySelectorAll(s).forEach(el => candidates.add(el)));
+    // videoタグから遡るフォールバック
+    const v = document.querySelector('video.html5-main-video');
+    if (v) {
+      let p = v.parentElement;
+      while (p && p !== document.body) {
+        if (p.id === 'player' || p.id === 'player-container' || p.tagName === 'YTD-PLAYER' || p.classList.contains('html5-video-player')) {
+          candidates.add(p);
+          break;
+        }
+        p = p.parentElement;
       }
-      if (document.querySelector('ytd-watch-flexy')) {
-        applyState();
+    }
+    let best = null;
+    let bestArea = 0;
+    candidates.forEach(el => {
+      const r = el.getBoundingClientRect();
+      const area = Math.max(0, r.width) * Math.max(0, r.height);
+      if (area > bestArea && r.width > 200 && r.height > 100 && r.bottom > 0 && r.right > 0) {
+        best = el;
+        bestArea = area;
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    return best;
   }
 
+  function applySticky() {
+    if (applied) return;
+    const container = findVisiblePlayerContainer();
+    if (!container) {
+      // 遅延ロード対策で再試行
+      setTimeout(applySticky, 800);
+      return;
+    }
+
+    // 上部オフセットをCSSカスタムプロパティに設定
+    const top = mastheadHeight();
+    container.style.setProperty('--ytpp-top-offset', `${top}px`);
+    // 幅はレイアウトに任せる（stickyは元の文脈で動作させる）
+    container.classList.add('ytpp-sticky');
+
+    // スクロールイベントでtopを追従（mastheadの高さ変動対応）
+    const onResize = () => {
+      container.style.setProperty('--ytpp-top-offset', `${mastheadHeight()}px`);
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('yt-action', onResize, { passive: true });
+
+    // 画面遷移時にクリーンアップできるように保存
+    container.dataset.ytppBound = '1';
+    applied = true;
+    log('sticky applied on', container);
+  }
+
+  function clearSticky() {
+    const el = document.querySelector('.ytpp-sticky');
+    if (el) {
+      el.classList.remove('ytpp-sticky');
+      el.style.removeProperty('--ytpp-top-offset');
+      delete el.dataset.ytppBound;
+    }
+    applied = false;
+  }
+
+  // SPA遷移対応
+  window.addEventListener('yt-navigate-finish', () => {
+    clearSticky();
+    if (location.pathname === '/watch') {
+      setTimeout(applySticky, 600);
+    }
+  });
+
+  // 初期化
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(applySticky, 600));
   } else {
-    initialize();
+    setTimeout(applySticky, 600);
   }
 
+  // デバッグユーティリティ（簡素）
+  window.ytppDebug = () => {
+    const el = document.querySelector('.ytpp-sticky');
+    log('applied:', applied, 'stickyEl:', el);
+    if (el) log('rect:', el.getBoundingClientRect());
+  };
 })();

@@ -1,27 +1,29 @@
-/* --- 機能が有効な場合に以下のスタイルを適用 --- */
-
-/* 1. プレーヤーを画面上部に固定する */
-ytd-watch-flexy[data-combined-sticky-enabled="true"] #player-container.ytd-watch-flexy {
-  /* position: sticky を使うことで、スクロール位置に応じて固定される */
-  position: -webkit-sticky;
-  /* 旧Safari用 */
-  position: sticky;
-  /* 上部ヘッダーの高さ(56px)分だけ下に配置 */
-  top: 56px;
-  /* 他の要素より手前に表示 */
-  z-index: 10;
-  /* スクロール時に下のコンテンツが透けないように背景色を設定 */
-  background-color: var(--yt-spec-base-background, #0f0f0f);
+/* プレイヤー固定（sticky）用の最小スタイル */
+#player.ytpp-sticky,
+#player-container.ytpp-sticky,
+#player-theater-container.ytpp-sticky,
+#player-full-bleed-container.ytpp-sticky,
+ytd-player.ytpp-sticky,
+body ytd-watch-flexy #player.ytpp-sticky,
+body ytd-watch-flexy #player-container.ytpp-sticky,
+body ytd-watch-flexy #player-theater-container.ytpp-sticky,
+body ytd-watch-flexy #player-full-bleed-container.ytpp-sticky,
+body ytd-watch-flexy ytd-player.ytpp-sticky {
+  position: sticky !important;
+  top: var(--ytpp-top-offset, 56px) !important;
+  z-index: 2147483647 !important;
+  /* プレイヤー本体の幅・高さは元のレイアウトに任せる */
 }
 
-/* 2. 右カラム(関連動画)を固定し、個別にスクロールさせる */
-ytd-watch-flexy[data-combined-sticky-enabled="true"] #secondary.ytd-watch-flexy {
-  /* こちらも position: sticky で固定 */
-  position: -webkit-sticky;
-  position: sticky;
-  top: 56px;
-  /* 高さを画面の高さからヘッダー分を引いた値に固定 */
-  height: calc(100vh - 56px);
-  /* このカラム内でコンテンツがはみ出した場合にスクロールバーを表示 */
-  overflow-y: auto;
+/* sticky中に余計なtransformの影響を避ける（多くは親要素に起因） */
+.ytpp-sticky {
+  transform: none !important;
+}
+
+/* プレイヤー子要素はコンテナサイズに追従 */
+.ytpp-sticky #movie_player,
+.ytpp-sticky .html5-video-player,
+.ytpp-sticky .html5-video-container {
+  width: 100% !important;
+  height: auto !important;
 }
