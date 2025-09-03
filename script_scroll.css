@@ -1,34 +1,39 @@
-/* 機能が有効なときだけスタイルを適用 */
+/* 
+このファイルは現在無効化されています。
+プレイヤー固定機能との競合を避けるため、全てのスタイルをコメントアウト。
+
+機能が有効なときだけスタイルを適用
 ytd-watch-flexy[data-two-column-scroll-enabled="true"] {
-  /* ページ全体のスクロールを無効化 */
+  ページ全体のスクロールを無効化
   overflow-y: hidden;
 }
 
 ytd-watch-flexy[data-two-column-scroll-enabled="true"] #columns.ytd-watch-flexy {
-  /* ヘッダーを除いた画面の高さに固定 */
+  ヘッダーを除いた画面の高さに固定
   height: calc(100vh - 56px);
   overflow: hidden;
 }
 
-/* --- 右カラム（関連動画）のスクロール設定 --- */
+右カラム（関連動画）のスクロール設定
 ytd-watch-flexy[data-two-column-scroll-enabled="true"] #secondary.ytd-watch-flexy {
   height: 100%;
   overflow-y: auto;
 }
 
-/* --- 左カラムの内部レイアウト設定 --- */
+左カラムの内部レイアウト設定
 ytd-watch-flexy[data-two-column-scroll-enabled="true"] #primary-inner.ytd-watch-flexy {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* --- コメント欄のスクロール設定 --- */
+コメント欄のスクロール設定
 ytd-watch-flexy[data-two-column-scroll-enabled="true"] #comments.ytd-watch-flexy {
-  /* 残りのスペースをすべて埋める */
+  残りのスペースをすべて埋める
   flex: 1;
-  /* スクロールを有効化 */
+  スクロールを有効化
   overflow-y: auto;
-  /* flexコンテナ内でoverflowを正しく動作させるためのおまじない */
+  flexコンテナ内でoverflowを正しく動作させるためのおまじない
   min-height: 0;
 }
+*/

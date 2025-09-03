@@ -1,29 +1,13 @@
-/* プレイヤー固定（sticky）用の最小スタイル */
-#player.ytpp-sticky,
-#player-container.ytpp-sticky,
-#player-theater-container.ytpp-sticky,
-#player-full-bleed-container.ytpp-sticky,
-ytd-player.ytpp-sticky,
-body ytd-watch-flexy #player.ytpp-sticky,
-body ytd-watch-flexy #player-container.ytpp-sticky,
-body ytd-watch-flexy #player-theater-container.ytpp-sticky,
-body ytd-watch-flexy #player-full-bleed-container.ytpp-sticky,
-body ytd-watch-flexy ytd-player.ytpp-sticky {
+.ytpp-sticky-player {
+  /* スムーズなスクロールを実現するCSSのネイティブ機能 */
   position: sticky !important;
+
+  /* JSが計算したヘッダーの高さを適用 */
   top: var(--ytpp-top-offset, 56px) !important;
-  z-index: 2147483647 !important;
-  /* プレイヤー本体の幅・高さは元のレイアウトに任せる */
-}
 
-/* sticky中に余計なtransformの影響を避ける（多くは親要素に起因） */
-.ytpp-sticky {
-  transform: none !important;
-}
+  /* YouTubeのUIより手前に表示 */
+  z-index: 2100 !important;
 
-/* プレイヤー子要素はコンテナサイズに追従 */
-.ytpp-sticky #movie_player,
-.ytpp-sticky .html5-video-player,
-.ytpp-sticky .html5-video-container {
-  width: 100% !important;
-  height: auto !important;
+  /* スクロール時に背景が透けるのを防ぐ */
+  background-color: var(--yt-spec-page-background, #0f0f0f);
 }
